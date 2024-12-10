@@ -2,14 +2,11 @@ package homecontroller
 
 import (
 	"net/http"
-	"text/template"
+
+	"github.com/gin-gonic/gin"
 )
 
-func Welcome(w http.ResponseWriter, r *http.Request) {
-	temp, err := template.ParseFiles("views/home/index.html")
-	if err != nil {
-		panic(err)
-	}
-
-	temp.Execute(w, nil)
+func Welcome(c *gin.Context) {
+	// Render the home page without passing any data
+	c.HTML(http.StatusOK, "home/index.html", nil)
 }

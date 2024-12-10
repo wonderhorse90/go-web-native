@@ -5,62 +5,54 @@ import (
 	"go-web-native/models/categorymodel"
 	"net/http"
 	"strconv"
-	"text/template"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-func Index(w http.ResponseWriter, r *http.Request) {
+func Index(c *gin.Context) {
 	categories := categorymodel.GetAll()
 	data := map[string]any{
 		"categories": categories,
 	}
 
-	temp, err := template.ParseFiles("views/category/index.html")
-	if err != nil {
-		panic(err)
-	}
-
-	temp.Execute(w, data)
+	// Render the category index page with the categories data
+	c.HTML(http.StatusOK, "views/category/index.html", data)
 }
 
-func Add(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		temp, err := template.ParseFiles("views/category/create.html")
-		if err != nil {
-			panic(err)
-		}
-
-		temp.Execute(w, nil)
-	}
-
-	if r.Method == "POST" {
+func Add(c *gin.Context) {
+	if c.Request.Method == "GET" {
+		// Render the create category page
+		c.HTML(http.StatusOK, "views/category/create.html", nil)
+	} else if c.Request.Method == "POST" {
 		var category entities.Category
 
-		category.Name = r.FormValue("name")
+		// Get form values
+		category.Name = c.DefaultPostForm("name", "")
 		category.CreatedAt = time.Now()
 		category.UpddatedAt = time.Now()
 
+		// Create category
 		ok := categorymodel.Create(category)
 		if !ok {
-			temp, _ := template.ParseFiles("views/category/create.html")
-			temp.Execute(w, nil)
+			// Render the create category page again in case of error
+			c.HTML(http.StatusOK, "views/category/create.html", nil)
+			return
 		}
 
-		http.Redirect(w, r, "/categories", http.StatusSeeOther)
+		// Redirect to the category list
+		c.Redirect(http.StatusSeeOther, "/categories")
 	}
 }
 
-func Edit(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		temp, err := template.ParseFiles("views/category/edit.html")
-		if err != nil {
-			panic(err)
-		}
-
-		idString := r.URL.Query().Get("id")
+func Edit(c *gin.Context) {
+	if c.Request.Method == "GET" {
+		// Get category ID from query
+		idString := c.DefaultQuery("id", "")
 		id, err := strconv.Atoi(idString)
 		if err != nil {
-			panic(err)
+			c.String(http.StatusBadRequest, "Invalid category ID")
+			return
 		}
 
 		category := categorymodel.Detail(id)
@@ -68,41 +60,48 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 			"category": category,
 		}
 
-		temp.Execute(w, data)
-	}
-
-	if r.Method == "POST" {
+		// Render the edit category page with category data
+		c.HTML(http.StatusOK, "views/category/edit.html", data)
+	} else if c.Request.Method == "POST" {
 		var category entities.Category
 
-		idString := r.FormValue("id")
+		// Get category ID from form
+		idString := c.DefaultPostForm("id", "")
 		id, err := strconv.Atoi(idString)
 		if err != nil {
-			panic(err)
-		}
-
-		category.Name = r.FormValue("name")
-		category.UpddatedAt = time.Now()
-
-		if ok := categorymodel.Update(id, category); !ok {
-			http.Redirect(w, r, r.Header.Get("Referer"), http.StatusTemporaryRedirect)
+			c.String(http.StatusBadRequest, "Invalid category ID")
 			return
 		}
 
-		http.Redirect(w, r, "/categories", http.StatusSeeOther)
+		// Get form values
+		category.Name = c.DefaultPostForm("name", "")
+		category.UpddatedAt = time.Now()
+
+		// Update category
+		if ok := categorymodel.Update(id, category); !ok {
+			c.Redirect(http.StatusTemporaryRedirect, c.Request.Referer())
+			return
+		}
+
+		// Redirect to the category list
+		c.Redirect(http.StatusSeeOther, "/categories")
 	}
 }
 
-func Delete(w http.ResponseWriter, r *http.Request) {
-	idString := r.URL.Query().Get("id")
-
+func Delete(c *gin.Context) {
+	idString := c.DefaultQuery("id", "")
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		panic(err)
+		c.String(http.StatusBadRequest, "Invalid category ID")
+		return
 	}
 
+	// Delete the category
 	if err := categorymodel.Delete(id); err != nil {
-		panic(err)
+		c.String(http.StatusInternalServerError, "Error deleting category: %v", err)
+		return
 	}
 
-	http.Redirect(w, r, "/categories", http.StatusSeeOther)
+	// Redirect to the category list
+	c.Redirect(http.StatusSeeOther, "/categories")
 }

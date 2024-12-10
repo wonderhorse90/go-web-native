@@ -8,9 +8,11 @@ import (
 	"strconv"
 	"text/template"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-func Index(w http.ResponseWriter, r *http.Request) {
+func Index(c *gin.Context) {
 	products := productmodel.Getall()
 	data := map[string]any{
 		"products": products,
@@ -18,17 +20,19 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 	temp, err := template.ParseFiles("views/product/index.html")
 	if err != nil {
-		panic(err)
+		c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
+		return
 	}
 
-	temp.Execute(w, data)
+	temp.Execute(c.Writer, data)
 }
 
-func Add(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+func Add(c *gin.Context) {
+	if c.Request.Method == http.MethodGet {
 		temp, err := template.ParseFiles("views/product/create.html")
 		if err != nil {
-			panic(err)
+			c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
+			return
 		}
 
 		categories := categorymodel.GetAll()
@@ -36,44 +40,48 @@ func Add(w http.ResponseWriter, r *http.Request) {
 			"categories": categories,
 		}
 
-		temp.Execute(w, data)
+		temp.Execute(c.Writer, data)
+		return
 	}
 
-	if r.Method == "POST" {
+	if c.Request.Method == http.MethodPost {
 		var product entities.Product
 
-		categoryId, err := strconv.Atoi(r.FormValue("category_id"))
+		categoryId, err := strconv.Atoi(c.PostForm("category_id"))
 		if err != nil {
-			panic(err)
+			c.String(http.StatusBadRequest, "Invalid category_id")
+			return
 		}
 
-		stock, err := strconv.Atoi(r.FormValue("stock"))
+		stock, err := strconv.Atoi(c.PostForm("stock"))
 		if err != nil {
-			panic(err)
+			c.String(http.StatusBadRequest, "Invalid stock")
+			return
 		}
 
-		product.Name = r.FormValue("name")
+		product.Name = c.PostForm("name")
 		product.Category.Id = uint(categoryId)
 		product.Stock = int64(stock)
-		product.Description = r.FormValue("description")
+		product.Description = c.PostForm("description")
 		product.CreatedAt = time.Now()
 		product.UpdatedAt = time.Now()
 
 		if ok := productmodel.Create(product); !ok {
-			http.Redirect(w, r, r.Header.Get("Referer"), http.StatusTemporaryRedirect)
+			c.Redirect(http.StatusTemporaryRedirect, c.Request.Referer())
 			return
 		}
 
-		http.Redirect(w, r, "/products", http.StatusSeeOther)
+		c.Redirect(http.StatusSeeOther, "/products")
 	}
 }
 
-func Detail(w http.ResponseWriter, r *http.Request) {
-	idString := r.URL.Query().Get("id")
+func Detail(c *gin.Context) {
+	idString := c.Query("id")
 
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		panic(err)
+		c.String(http.StatusBadRequest, "Invalid ID")
+		return
 	}
 
 	product := productmodel.Detail(id)
@@ -83,23 +91,26 @@ func Detail(w http.ResponseWriter, r *http.Request) {
 
 	temp, err := template.ParseFiles("views/product/detail.html")
 	if err != nil {
-		panic(err)
+		c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
+		return
 	}
 
-	temp.Execute(w, data)
+	temp.Execute(c.Writer, data)
 }
 
-func Edit(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+func Edit(c *gin.Context) {
+	if c.Request.Method == http.MethodGet {
 		temp, err := template.ParseFiles("views/product/edit.html")
 		if err != nil {
-			panic(err)
+			c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
+			return
 		}
 
-		idString := r.URL.Query().Get("id")
+		idString := c.Query("id")
 		id, err := strconv.Atoi(idString)
 		if err != nil {
-			panic(err)
+			c.String(http.StatusBadRequest, "Invalid ID")
+			return
 		}
 
 		product := productmodel.Detail(id)
@@ -110,54 +121,60 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 			"categories": categories,
 		}
 
-		temp.Execute(w, data)
+		temp.Execute(c.Writer, data)
+		return
 	}
 
-	if r.Method == "POST" {
+	if c.Request.Method == http.MethodPost {
 		var product entities.Product
 
-		idString := r.FormValue("id")
+		idString := c.PostForm("id")
 		id, err := strconv.Atoi(idString)
 		if err != nil {
-			panic(err)
-		}
-
-		categoryId, err := strconv.Atoi(r.FormValue("category_id"))
-		if err != nil {
-			panic(err)
-		}
-
-		stock, err := strconv.Atoi(r.FormValue("stock"))
-		if err != nil {
-			panic(err)
-		}
-
-		product.Name = r.FormValue("name")
-		product.Category.Id = uint(categoryId)
-		product.Stock = int64(stock)
-		product.Description = r.FormValue("description")
-		product.UpdatedAt = time.Now()
-
-		if ok := productmodel.Update(id, product); !ok {
-			http.Redirect(w, r, r.Header.Get("Referer"), http.StatusTemporaryRedirect)
+			c.String(http.StatusBadRequest, "Invalid ID")
 			return
 		}
 
-		http.Redirect(w, r, "/products", http.StatusSeeOther)
+		categoryId, err := strconv.Atoi(c.PostForm("category_id"))
+		if err != nil {
+			c.String(http.StatusBadRequest, "Invalid category_id")
+			return
+		}
+
+		stock, err := strconv.Atoi(c.PostForm("stock"))
+		if err != nil {
+			c.String(http.StatusBadRequest, "Invalid stock")
+			return
+		}
+
+		product.Name = c.PostForm("name")
+		product.Category.Id = uint(categoryId)
+		product.Stock = int64(stock)
+		product.Description = c.PostForm("description")
+		product.UpdatedAt = time.Now()
+
+		if ok := productmodel.Update(id, product); !ok {
+			c.Redirect(http.StatusTemporaryRedirect, c.Request.Referer())
+			return
+		}
+
+		c.Redirect(http.StatusSeeOther, "/products")
 	}
 }
 
-func Delete(w http.ResponseWriter, r *http.Request) {
-	idString := r.URL.Query().Get("id")
+func Delete(c *gin.Context) {
+	idString := c.Query("id")
 
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		panic(err)
+		c.String(http.StatusBadRequest, "Invalid ID")
+		return
 	}
 
 	if err := productmodel.Delete(id); err != nil {
-		panic(err)
+		c.String(http.StatusInternalServerError, "Failed to delete product: %v", err)
+		return
 	}
 
-	http.Redirect(w, r, "/products", http.StatusSeeOther)
+	c.Redirect(http.StatusSeeOther, "/products")
 }
