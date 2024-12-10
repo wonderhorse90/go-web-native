@@ -62,30 +62,36 @@
           </tr>
         </thead>
         <tbody>
-          {{range .products}}
-          <tr>
-            <td>{{.Name}}</td>
-            <td>{{.Category.Name}}</td>
-            <td>{{.Stock}}</td>
-            <td>
-              <a
-                href="/products/detail?id={{.Id}}"
-                class="btn btn-sm btn-info text-light"
-                >Detail</a
-              >
-              <a
-                href="/products/edit?id={{.Id}}"
-                class="btn btn-sm btn-warning text-light"
-                >Edit</a
-              >
-              <a
-                href="/products/delete?id={{.Id}}"
-                onclick="return confirm('Are you sure want to delete this product ?')"
-                class="btn btn-sm btn-danger"
-                >Delete</a
-              >
-            </td>
-          </tr>
+          {{if .products}}
+            {{range .products}}
+            <tr>
+              <td>{{.Name}}</td>
+              <td>{{.Category.Name}}</td>
+              <td>{{.Stock}}</td>
+              <td>
+                <a
+                  href="/products/detail?id={{.ID}}"
+                  class="btn btn-sm btn-info text-light"
+                  >Detail</a
+                >
+                <a
+                  href="/products/edit?id={{.ID}}"
+                  class="btn btn-sm btn-warning text-light"
+                  >Edit</a
+                >
+                <a
+                  href="/products/delete?id={{.ID}}"
+                  onclick="return confirm('Are you sure want to delete this product ?')"
+                  class="btn btn-sm btn-danger"
+                  >Delete</a
+                >
+              </td>
+            </tr>
+            {{end}}
+          {{else}}
+            <tr>
+              <td colspan="4">No products available.</td>
+            </tr>
           {{end}}
         </tbody>
       </table>

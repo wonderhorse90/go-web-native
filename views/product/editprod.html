@@ -55,7 +55,7 @@
           <hr />
 
           <form action="/products/edit" method="POST">
-            <input type="hidden" name="id" value="{{ .product.Id }}" />
+            <input type="hidden" name="id" value="{{ .product.ID }}" />
             <div class="mb-3">
               <label class="form-label">Name</label>
               <input
@@ -68,7 +68,7 @@
             <div class="mb-3">
               <select class="form-select" name="category_id">
                 {{range .categories}}
-                <option value="{{ .Id}}">{{ .Name }}</option>
+                <option value="{{ .ID}}">{{ .Name }}</option>
                 {{end}}
               </select>
             </div>

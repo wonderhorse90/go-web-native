@@ -22,7 +22,7 @@ func Index(c *gin.Context) {
 
 func Add(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
-		temp, err := template.ParseFiles("views/product/createprod.html")
+		temp, err := template.ParseFiles("createprod.html")
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
 			return
@@ -82,7 +82,7 @@ func Detail(c *gin.Context) {
 		"product": product,
 	}
 
-	temp, err := template.ParseFiles("views/product/detailprod.html")
+	temp, err := template.ParseFiles("detailprod.html")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
 		return
@@ -93,7 +93,7 @@ func Detail(c *gin.Context) {
 
 func Edit(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
-		temp, err := template.ParseFiles("views/product/editprod.html")
+		temp, err := template.ParseFiles("editprod.html")
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
 			return
