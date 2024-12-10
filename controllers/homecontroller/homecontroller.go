@@ -8,5 +8,5 @@ import (
 
 func Welcome(c *gin.Context) {
 	// Render the home page without passing any data
-	c.HTML(http.StatusOK, "home/index.html", nil)
+	c.HTML(http.StatusOK, "home.html", gin.H{})
 }

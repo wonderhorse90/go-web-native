@@ -3,8 +3,8 @@ package entities
 import "time"
 
 type Category struct {
-	Id         uint
-	Name       string
-	CreatedAt  time.Time
-	UpddatedAt time.Time
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

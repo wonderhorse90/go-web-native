@@ -12,31 +12,30 @@ import (
 
 func Index(c *gin.Context) {
 	categories := categorymodel.GetAll()
-	data := map[string]any{
-		"categories": categories,
-	}
 
 	// Render the category index page with the categories data
-	c.HTML(http.StatusOK, "views/category/index.html", data)
+	c.HTML(http.StatusOK, "category.html", gin.H{
+		"categories": categories,
+	})
 }
 
 func Add(c *gin.Context) {
 	if c.Request.Method == "GET" {
 		// Render the create category page
-		c.HTML(http.StatusOK, "views/category/create.html", nil)
+		c.HTML(http.StatusOK, "views/category/createcat.html", nil)
 	} else if c.Request.Method == "POST" {
 		var category entities.Category
 
 		// Get form values
 		category.Name = c.DefaultPostForm("name", "")
 		category.CreatedAt = time.Now()
-		category.UpddatedAt = time.Now()
+		category.UpdatedAt = time.Now()
 
 		// Create category
 		ok := categorymodel.Create(category)
 		if !ok {
 			// Render the create category page again in case of error
-			c.HTML(http.StatusOK, "views/category/create.html", nil)
+			c.HTML(http.StatusOK, "views/category/createcat.html", nil)
 			return
 		}
 
@@ -61,7 +60,7 @@ func Edit(c *gin.Context) {
 		}
 
 		// Render the edit category page with category data
-		c.HTML(http.StatusOK, "views/category/edit.html", data)
+		c.HTML(http.StatusOK, "views/category/editcat.html", data)
 	} else if c.Request.Method == "POST" {
 		var category entities.Category
 
@@ -75,7 +74,7 @@ func Edit(c *gin.Context) {
 
 		// Get form values
 		category.Name = c.DefaultPostForm("name", "")
-		category.UpddatedAt = time.Now()
+		category.UpdatedAt = time.Now()
 
 		// Update category
 		if ok := categorymodel.Update(id, category); !ok {

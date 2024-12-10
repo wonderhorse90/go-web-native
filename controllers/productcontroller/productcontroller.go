@@ -13,23 +13,16 @@ import (
 )
 
 func Index(c *gin.Context) {
-	products := productmodel.Getall()
-	data := map[string]any{
+	products := productmodel.GetAll()
+
+	c.HTML(http.StatusOK, "product.html", gin.H{
 		"products": products,
-	}
-
-	temp, err := template.ParseFiles("views/product/index.html")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
-		return
-	}
-
-	temp.Execute(c.Writer, data)
+	})
 }
 
 func Add(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
-		temp, err := template.ParseFiles("views/product/create.html")
+		temp, err := template.ParseFiles("views/product/createprod.html")
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
 			return
@@ -60,8 +53,8 @@ func Add(c *gin.Context) {
 		}
 
 		product.Name = c.PostForm("name")
-		product.Category.Id = uint(categoryId)
-		product.Stock = int64(stock)
+		product.CategoryID = uint(categoryId)
+		product.Stock = int(stock)
 		product.Description = c.PostForm("description")
 		product.CreatedAt = time.Now()
 		product.UpdatedAt = time.Now()
@@ -89,7 +82,7 @@ func Detail(c *gin.Context) {
 		"product": product,
 	}
 
-	temp, err := template.ParseFiles("views/product/detail.html")
+	temp, err := template.ParseFiles("views/product/detailprod.html")
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
 		return
@@ -100,7 +93,7 @@ func Detail(c *gin.Context) {
 
 func Edit(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
-		temp, err := template.ParseFiles("views/product/edit.html")
+		temp, err := template.ParseFiles("views/product/editprod.html")
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Template parsing error: %v", err)
 			return
@@ -148,8 +141,8 @@ func Edit(c *gin.Context) {
 		}
 
 		product.Name = c.PostForm("name")
-		product.Category.Id = uint(categoryId)
-		product.Stock = int64(stock)
+		product.CategoryID = uint(categoryId)
+		product.Stock = int(stock)
 		product.Description = c.PostForm("description")
 		product.UpdatedAt = time.Now()
 
@@ -163,11 +156,10 @@ func Edit(c *gin.Context) {
 }
 
 func Delete(c *gin.Context) {
-	idString := c.Query("id")
-
+	idString := c.DefaultQuery("id", "")
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		c.String(http.StatusBadRequest, "Invalid ID")
+		c.String(http.StatusBadRequest, "Invalid Product ID")
 		return
 	}
 

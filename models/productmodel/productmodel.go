@@ -1,139 +1,82 @@
 package productmodel
 
 import (
+	"fmt"
 	"go-web-native/config"
 	"go-web-native/entities"
+	"log"
 )
 
-func Getall() []entities.Product {
-	rows, err := config.DB.Query(`
-		SELECT 
-			products.id, 
-			products.name, 
-			categories.name as category_name,
-			products.stock, 
-			products.description, 
-			products.created_at, 
-			products.updated_at FROM products
-		JOIN categories ON products.category_id = categories.id
-	`)
-
-	if err != nil {
-		panic(err)
-	}
-
-	defer rows.Close()
-
+// GetAll fetches all products with their associated categories
+func GetAll() []entities.Product {
 	var products []entities.Product
 
-	for rows.Next() {
-		var product entities.Product
-		if err := rows.Scan(
-			&product.Id,
-			&product.Name,
-			&product.Category.Name,
-			&product.Stock,
-			&product.Description,
-			&product.CreatedAt,
-			&product.UpdatedAt,
-		); err != nil {
-			panic(err)
-		}
-
-		products = append(products, product)
+	// Use Preload to fetch related category data
+	result := config.DB.Preload("Category").Find(&products)
+	if result.Error != nil {
+		log.Println("Error fetching products:", result.Error)
 	}
 
 	return products
 }
 
+// Create inserts a new product into the database
 func Create(product entities.Product) bool {
-	result, err := config.DB.Exec(`
-		INSERT INTO products(
-			name, category_id, stock, description, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?)`,
-		product.Name,
-		product.Category.Id,
-		product.Stock,
-		product.Description,
-		product.CreatedAt,
-		product.UpdatedAt,
-	)
-
-	if err != nil {
-		panic(err)
+	result := config.DB.Create(&product)
+	if result.Error != nil {
+		log.Println("Error creating product:", result.Error)
+		return false
 	}
-
-	lastInsertId, err := result.LastInsertId()
-	if err != nil {
-		panic(err)
-	}
-
-	return lastInsertId > 0
+	return result.RowsAffected > 0
 }
 
-func Detail(id int) entities.Product {
-	row := config.DB.QueryRow(`
-		SELECT 
-			products.id, 
-			products.name, 
-			categories.name as category_name,
-			products.stock, 
-			products.description, 
-			products.created_at, 
-			products.updated_at FROM products
-		JOIN categories ON products.category_id = categories.id
-		WHERE products.id = ?
-	`, id)
-
+// Detail fetches a single product by its ID
+func Detail(id int) *entities.Product {
 	var product entities.Product
 
-	err := row.Scan(
-		&product.Id,
-		&product.Name,
-		&product.Category.Name,
-		&product.Stock,
-		&product.Description,
-		&product.CreatedAt,
-		&product.UpdatedAt,
-	)
-
-	if err != nil {
-		panic(err)
+	// Use Preload to fetch related category data
+	result := config.DB.Preload("Category").First(&product, id)
+	if result.Error != nil {
+		log.Println("Error fetching product details:", result.Error)
+		return nil
 	}
 
-	return product
+	return &product
 }
 
+// Update modifies an existing product
 func Update(id int, product entities.Product) bool {
-	query, err := config.DB.Exec(`
-		UPDATE products SET 
-			name = ?, 
-			category_id = ?,
-			stock = ?,
-			description = ?,
-			updated_at = ?
-		WHERE id = ?`,
-		product.Name,
-		product.Category.Id,
-		product.Stock,
-		product.Description,
-		product.UpdatedAt,
-		id,
-	)
-
-	if err != nil {
-		panic(err)
+	// Fetch the existing product
+	var existingProduct entities.Product
+	if err := config.DB.First(&existingProduct, id).Error; err != nil {
+		log.Println("Error finding product to update:", err)
+		return false
 	}
 
-	result, err := query.RowsAffected()
-	if err != nil {
-		panic(err)
-	}
+	// Update the fields
+	existingProduct.Name = product.Name
+	existingProduct.CategoryID = product.CategoryID
+	existingProduct.Stock = product.Stock
+	existingProduct.Description = product.Description
+	existingProduct.UpdatedAt = product.UpdatedAt
 
-	return result > 0
+	// Save changes
+	saveResult := config.DB.Save(&existingProduct)
+	if saveResult.Error != nil {
+		log.Println("Error updating product:", saveResult.Error)
+		return false
+	}
+	return saveResult.RowsAffected > 0
 }
 
+// Delete removes a product by its ID
 func Delete(id int) error {
-	_, err := config.DB.Exec("DELETE FROM products WHERE id = ?", id)
-	return err
+	result := config.DB.Delete(&entities.Product{}, id)
+	if result.Error != nil {
+		return result.Error // Return the error if deletion fails
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("no category found with ID %d", id) // Handle cases where no rows are affected
+	}
+	return nil
 }
